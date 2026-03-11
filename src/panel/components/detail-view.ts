@@ -61,6 +61,16 @@ function prettyJson(value: unknown): string {
   return JSON.stringify(sanitizeBody(value), null, 2);
 }
 
+function isEmptyBodyText(value: string): boolean {
+  const normalized = value.trim();
+  return (
+    normalized === "(empty)" ||
+    normalized === '"(empty)"' ||
+    normalized === "null" ||
+    normalized === '""'
+  );
+}
+
 export function createDetailView(request: MonitoredRequest, options: DetailViewOptions = {}): HTMLElement {
   const container = document.createElement("div");
   container.className = "details";
@@ -74,7 +84,9 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
 
   const requestBodyText = prettyJson(request.requestBody);
   const showRequestHeaders = !options.isBatchChild || meaningfulHeaderKeys.length > 0;
-  const showRequestBody = !options.isBatchChild || requestBodyText !== "(empty)";
+  const showRequestBody = !isEmptyBodyText(requestBodyText);
+  const responseBodyText = prettyJson(request.responseBody);
+  const showResponseBody = !isEmptyBodyText(responseBodyText);
 
   const sections: string[] = [];
   const searchText = options.searchText ?? "";
@@ -94,16 +106,17 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
     `);
   }
 
-  const responseBodyText = prettyJson(request.responseBody);
-  sections.push(`
-    <strong>Response Body</strong>
-    <pre class="json-block">${highlightText(responseBodyText, searchText)}</pre>
-  `);
+  if (showResponseBody) {
+    sections.push(`
+      <strong>Response Body</strong>
+      <pre class="json-block">${highlightText(responseBodyText, searchText)}</pre>
+    `);
+  }
 
   const copyPayload = {
     ...(showRequestHeaders ? { requestHeaders: sanitizedRequestHeaders } : {}),
     ...(showRequestBody ? { requestBody: sanitizeBody(request.requestBody) } : {}),
-    responseBody: sanitizeBody(request.responseBody)
+    ...(showResponseBody ? { responseBody: sanitizeBody(request.responseBody) } : {})
   };
 
   container.innerHTML = `
@@ -124,7 +137,7 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
   const searchableText = [
     showRequestHeaders ? prettyJson(sanitizedRequestHeaders) : "",
     showRequestBody ? requestBodyText : "",
-    responseBodyText
+    showResponseBody ? responseBodyText : ""
   ]
     .join("\n")
     .toLowerCase();

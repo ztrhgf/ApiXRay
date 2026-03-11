@@ -23,7 +23,7 @@ export function parseBatchRequest(bodyText: string): BatchSubRequest[] {
   return requests
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
     .map((item, index) => ({
-      id: String(item.id ?? index + 1),
+      id: String(item.id ?? item.name ?? index + 1),
       method: String(item.method ?? "GET"),
       url: String(item.url ?? "/"),
       headers: (item.headers as Record<string, string> | undefined) ?? {},
@@ -42,10 +42,10 @@ export function parseBatchResponse(bodyText: string): BatchSubResponse[] {
   return responses
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
     .map((item, index) => ({
-      id: String(item.id ?? index + 1),
-      status: Number(item.status ?? 0),
+      id: String(item.id ?? item.name ?? index + 1),
+      status: Number(item.status ?? item.httpStatusCode ?? 0),
       headers: (item.headers as Record<string, string> | undefined) ?? {},
-      body: item.body
+      body: item.body ?? item.content
     }));
 }
 
