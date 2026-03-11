@@ -30,6 +30,7 @@ export interface BatchPair {
 export interface MonitoredRequest {
   id: string;
   timestamp: string;
+  capturedPageUrl: string;
   url: string;
   method: HttpMethod;
   status: number;

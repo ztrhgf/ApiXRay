@@ -2,6 +2,15 @@ import { createDetailView } from "./detail-view";
 import type { MonitoredRequest } from "../../shared/types";
 import { splitPathAndQuery } from "../../shared/url-utils";
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function getStatusClass(status: number): string {
   if (status >= 400) {
     return "err";
@@ -33,12 +42,15 @@ export function createRequestEntry(
   row.className = "row-head";
 
   const { mainPath, query } = splitPathAndQuery(request.endpointPath);
+  const escapedMain = escapeHtml(`${request.endpointBase}${mainPath}`);
+  const escapedQuery = escapeHtml(query);
+  const escapedMethod = escapeHtml(request.method);
   row.innerHTML = `
     <button class="icon-btn expand-btn" data-action="expand" title="Toggle details" aria-label="Toggle details">
       <span class="icon-arrow" aria-hidden="true"></span>
     </button>
-    <span class="badge ${request.method}">${request.method}</span>
-    <span class="url-full"><span class="url-main">${request.endpointBase}${mainPath}</span><span class="url-query">${query}</span></span>
+    <span class="badge ${request.method}">${escapedMethod}</span>
+    <span class="url-full"><span class="url-main">${escapedMain}</span><span class="url-query">${escapedQuery}</span></span>
     <span class="status ${getStatusClass(request.status)}">${request.status}</span>
     <span class="latency">${request.latencyMs} ms</span>
     <span class="row-actions">

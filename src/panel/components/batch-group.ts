@@ -1,6 +1,16 @@
 import { createDetailView } from "./detail-view";
 import type { MethodFilter, MonitoredRequest } from "../../shared/types";
 import { splitPathAndQuery } from "../../shared/url-utils";
+import { sanitizeUrl } from "../../shared/sanitizer";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function toAbsoluteUrl(base: string, subUrl: string): string {
   if (/^https?:\/\//i.test(subUrl)) {
@@ -52,12 +62,14 @@ export function createBatchGroup(
   const head = document.createElement("div");
   head.className = "row-head";
   const parentSegments = splitPathAndQuery(request.endpointPath);
+  const escapedParentMain = escapeHtml(`${request.endpointBase}${parentSegments.mainPath}`);
+  const escapedParentQuery = escapeHtml(parentSegments.query);
   head.innerHTML = `
     <button class="icon-btn expand-btn" data-action="expand" title="Toggle batch details" aria-label="Toggle batch details">
       <span class="icon-arrow" aria-hidden="true"></span>
     </button>
     <span class="badge POST">POST</span>
-    <span class="url-full"><span class="url-main">${request.endpointBase}${parentSegments.mainPath}</span><span class="url-query">${parentSegments.query}</span></span>
+    <span class="url-full"><span class="url-main">${escapedParentMain}</span><span class="url-query">${escapedParentQuery}</span></span>
     <span class="status ok">${request.status}</span>
     <span class="latency">${request.latencyMs} ms</span>
     <span class="row-actions">
@@ -75,12 +87,13 @@ export function createBatchGroup(
   let hasSearchMatch = false;
 
   for (const pair of visiblePairs) {
-    const absoluteUrl = toAbsoluteUrl(request.endpointBase, pair.request.url);
+    const absoluteUrl = sanitizeUrl(toAbsoluteUrl(request.endpointBase, pair.request.url));
     const absolute = new URL(absoluteUrl);
     const method = normalizeMethod(pair.request.method);
     const childRequest: MonitoredRequest = {
       id: `${request.id}-batch-${pair.request.id}`,
       timestamp: request.timestamp,
+      capturedPageUrl: request.capturedPageUrl,
       url: absoluteUrl,
       method,
       status: pair.response?.status ?? 0,
@@ -99,13 +112,16 @@ export function createBatchGroup(
     const child = document.createElement("div");
     child.className = "batch-child";
     const childSegments = splitPathAndQuery(childRequest.endpointPath);
+    const escapedChildMain = escapeHtml(`${childRequest.endpointBase}${childSegments.mainPath}`);
+    const escapedChildQuery = escapeHtml(childSegments.query);
+    const escapedChildMethod = escapeHtml(pair.request.method.toUpperCase());
     child.innerHTML = `
       <div class="row-head row-head-child">
         <button class="icon-btn expand-btn" data-action="expand" title="Toggle details" aria-label="Toggle details">
           <span class="icon-arrow" aria-hidden="true"></span>
         </button>
-        <span class="badge ${method}">${pair.request.method.toUpperCase()}</span>
-        <span class="url-full"><span class="url-main">${childRequest.endpointBase}${childSegments.mainPath}</span><span class="url-query">${childSegments.query}</span></span>
+        <span class="badge ${method}">${escapedChildMethod}</span>
+        <span class="url-full"><span class="url-main">${escapedChildMain}</span><span class="url-query">${escapedChildQuery}</span></span>
         <span class="status ${getStatusClass(childRequest.status)}">${childRequest.status}</span>
         <span class="row-actions">
           <button class="icon-btn" data-action="copy" title="Copy URL" aria-label="Copy URL">

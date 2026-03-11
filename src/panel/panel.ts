@@ -4,7 +4,7 @@ import { Toolbar } from "./components/toolbar";
 import { getActiveEndpoints } from "../shared/endpoints";
 import { formatUrl, isBatchUrl, matchEndpoint } from "../shared/url-utils";
 import { matchBatchPairs, parseBatchRequest, parseBatchResponse } from "../shared/batch-parser";
-import { sanitizeBody, sanitizeHeaders } from "../shared/sanitizer";
+import { sanitizeBody, sanitizeHeaders, sanitizeUrl } from "../shared/sanitizer";
 import type { FilterState, HttpMethod, MethodFilter, MonitoredRequest } from "../shared/types";
 
 type HarHeader = { name: string; value: string };
@@ -27,6 +27,7 @@ type HarEntry = {
 };
 
 const requests: MonitoredRequest[] = [];
+const MAX_REQUESTS = 1000;
 
 let filterState: FilterState = {
   selectedMethod: "ALL",
@@ -45,6 +46,49 @@ function requireElement<T extends HTMLElement>(selector: string): T {
 const requestList = requireElement<HTMLElement>("#request-list");
 const emptyState = requireElement<HTMLElement>("#empty-state");
 const toolbarRoot = requireElement<HTMLElement>("#toolbar");
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function createCaptureSeparator(pageUrl: string): HTMLElement {
+  const separator = document.createElement("section");
+  separator.className = "capture-separator";
+  separator.innerHTML = `
+    <div class="capture-separator-line"></div>
+    <div class="capture-separator-label">Captured on: ${escapeHtml(pageUrl)}</div>
+    <div class="capture-separator-line"></div>
+  `;
+  return separator;
+}
+
+function getCapturedPageUrl(): Promise<string> {
+  return new Promise((resolve) => {
+    const tabId = chrome.devtools.inspectedWindow.tabId;
+
+    chrome.tabs.get(tabId, (tab) => {
+      const tabUrl = tab?.url;
+      if (typeof tabUrl === "string" && tabUrl) {
+        resolve(tabUrl);
+        return;
+      }
+
+      chrome.devtools.inspectedWindow.eval("window.location.href", (result, exceptionInfo) => {
+        if (exceptionInfo || typeof result !== "string" || !result) {
+          resolve("(unknown page)");
+          return;
+        }
+
+        resolve(result);
+      });
+    });
+  });
+}
 
 function normalizeMethod(method: string): HttpMethod {
   const upper = method.toUpperCase();
@@ -161,7 +205,14 @@ function render(): void {
 
   requestList.replaceChildren();
 
+  let previousCaptureUrl: string | null = null;
+
   for (const request of visible) {
+    if (request.capturedPageUrl !== previousCaptureUrl) {
+      requestList.appendChild(createCaptureSeparator(request.capturedPageUrl));
+      previousCaptureUrl = request.capturedPageUrl;
+    }
+
     const element = request.isBatch
       ? createBatchGroup(request, filterState.selectedMethod, filterState.searchText)
       : createRequestEntry(request, {
@@ -194,6 +245,16 @@ async function processEntry(entry: HarEntry): Promise<void> {
 
   const requestBodyRaw = entry.request.postData?.text ?? "";
   const responseBodyRaw = await getResponseBody(entry);
+  const capturedPageUrl = await getCapturedPageUrl();
+  const sanitizedUrl = sanitizeUrl(entry.request.url);
+  const sanitizedUrlPath = (() => {
+    try {
+      const parsed = new URL(sanitizedUrl);
+      return `${parsed.pathname}${parsed.search}` || "/";
+    } catch {
+      return match.path;
+    }
+  })();
 
   const parsedRequestBody = parseMaybeJson(requestBodyRaw);
   const parsedResponseBody = parseMaybeJson(responseBodyRaw);
@@ -203,12 +264,13 @@ async function processEntry(entry: HarEntry): Promise<void> {
   const monitored: MonitoredRequest = {
     id: `${entry.startedDateTime}-${entry.request.method}-${entry.request.url}`,
     timestamp: entry.startedDateTime,
-    url: entry.request.url,
+    capturedPageUrl,
+    url: sanitizedUrl,
     method: normalizeMethod(entry.request.method),
     status: Number(entry.response.status ?? 0),
     latencyMs: Math.max(0, Math.round(entry.time ?? 0)),
     endpointBase: match.base,
-    endpointPath: match.path,
+    endpointPath: sanitizedUrlPath,
     endpointScope: match.scope,
     requestHeaders: sanitizeHeaders(headersToMap(entry.request.headers ?? [])),
     requestBody: sanitizeBody(parsedRequestBody),
@@ -227,6 +289,9 @@ async function processEntry(entry: HarEntry): Promise<void> {
   }
 
   requests.unshift(monitored);
+  if (requests.length > MAX_REQUESTS) {
+    requests.length = MAX_REQUESTS;
+  }
   render();
 }
 
