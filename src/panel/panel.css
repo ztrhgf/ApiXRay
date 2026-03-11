@@ -1,0 +1,306 @@
+:root {
+  --bg: #f6f8fc;
+  --surface: #ffffff;
+  --border: #d7dde9;
+  --text: #1b2433;
+  --muted: #61708a;
+  --accent: #0f6cbd;
+  --path: #20427c;
+  --ok: #147d3f;
+  --warn: #a15d00;
+  --err: #b42318;
+  --badge-get: #1f8f4a;
+  --badge-post: #0f6cbd;
+  --badge-put: #6d4aff;
+  --badge-patch: #d97706;
+  --badge-delete: #b42318;
+  --badge-other: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111722;
+    --surface: #1a2333;
+    --border: #2c3b52;
+    --text: #dde7fb;
+    --muted: #95a6c8;
+    --accent: #60a5fa;
+    --path: #9bb9ff;
+    --ok: #5ad083;
+    --warn: #f6b24e;
+    --err: #ff7b72;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top right, rgba(15, 108, 189, 0.12), transparent 40%), var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  min-height: 100vh;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-row + .toolbar-row {
+  margin-top: 8px;
+}
+
+.select-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.text-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 220px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.action-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.request-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-state {
+  padding: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.request-entry,
+.batch-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.row-head {
+  display: grid;
+  grid-template-columns: auto auto minmax(180px, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+}
+
+.row-head-child {
+  grid-template-columns: auto auto minmax(180px, 1fr) auto auto;
+}
+
+.request-entry:nth-child(odd),
+.batch-group:nth-child(odd) {
+  background: color-mix(in srgb, var(--surface), var(--accent) 2%);
+}
+
+.badge {
+  color: #fff;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.badge.GET { background: var(--badge-get); }
+.badge.POST { background: var(--badge-post); }
+.badge.PUT { background: var(--badge-put); }
+.badge.PATCH { background: var(--badge-patch); }
+.badge.DELETE { background: var(--badge-delete); }
+.badge.OTHER { background: var(--badge-other); }
+
+.url-full { display: inline; word-break: break-all; }
+.url-main { color: var(--accent); font-weight: 600; }
+.url-query { color: var(--path); opacity: 0.9; }
+.status.ok { color: var(--ok); font-weight: 600; }
+.status.warn { color: var(--warn); font-weight: 600; }
+.status.err { color: var(--err); font-weight: 600; }
+.latency { color: var(--muted); }
+
+.details {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  display: none;
+  background: color-mix(in srgb, var(--surface), black 8%);
+  transition: background-color 250ms ease;
+}
+
+.details.open {
+  display: block;
+}
+
+.details.open.expanding,
+.batch-children.open.expanding {
+  animation: expandPulse 1000ms ease;
+}
+
+.details-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  border-color: var(--accent);
+}
+
+.icon-copy {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+}
+
+.icon-copy::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-64%, -64%);
+}
+
+.icon-copy::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-36%, -36%);
+}
+
+.match-hit {
+  background: #ffe58a;
+  color: #2f2000;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.icon-arrow {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+  margin-top: -2px;
+}
+
+.expand-btn.open .icon-arrow {
+  transform: rotate(225deg);
+  margin-top: 2px;
+}
+
+.json-block {
+  margin: 6px 0;
+  padding: 8px;
+  max-height: 250px;
+  overflow: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface), black 4%);
+}
+
+.batch-children {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--surface), black 6%);
+}
+
+.batch-child {
+  padding: 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.batch-child:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 780px) {
+  .row-head {
+    grid-template-columns: auto auto minmax(140px, 1fr) auto;
+  }
+
+  .row-head-child {
+    grid-template-columns: auto auto minmax(140px, 1fr) auto;
+  }
+}
+
+@keyframes expandPulse {
+  0% {
+    background-color: color-mix(in srgb, var(--accent), var(--surface) 82%);
+  }
+  100% {
+    background-color: color-mix(in srgb, var(--surface), black 8%);
+  }
+}

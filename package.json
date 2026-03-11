@@ -1,0 +1,22 @@
+{
+  "name": "apixray",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-browser DevTools extension for monitoring Microsoft API traffic.",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "lint": "eslint . --ext .ts",
+    "firefox:run": "web-ext run -s dist/firefox"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.306",
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
+    "esbuild": "^0.25.1",
+    "eslint": "^9.22.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "web-ext": "^8.6.0"
+  }
+}
