@@ -50,4 +50,5 @@ export interface FilterState {
   selectedMethod: MethodFilter;
   searchText: string;
   includeInternal: boolean;
+  captureEnabled: boolean;
 }

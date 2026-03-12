@@ -32,8 +32,11 @@ const MAX_REQUESTS = 1000;
 let filterState: FilterState = {
   selectedMethod: "ALL",
   searchText: "",
-  includeInternal: false
+  includeInternal: false,
+  captureEnabled: true
 };
+
+let captureEnabled = true;
 
 function requireElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -231,7 +234,12 @@ function render(): void {
   emptyState.style.display = visible.length ? "none" : "block";
 }
 
-async function processEntry(entry: HarEntry): Promise<void> {
+async function processEntry(entry: HarEntry, options?: { respectCaptureState?: boolean }): Promise<void> {
+  const shouldRespectCaptureState = options?.respectCaptureState ?? true;
+  if (shouldRespectCaptureState && !captureEnabled) {
+    return;
+  }
+
   if (entry.request.method.toUpperCase() === "OPTIONS") {
     return;
   }
@@ -299,7 +307,7 @@ function loadExistingHar(): void {
   chrome.devtools.network.getHAR(async (har: { entries?: unknown[] }) => {
     const entries = (har?.entries ?? []) as HarEntry[];
     for (const entry of entries) {
-      await processEntry(entry);
+      await processEntry(entry, { respectCaptureState: false });
     }
   });
 }
@@ -314,6 +322,7 @@ async function bootstrap(): Promise<void> {
   const toolbar = new Toolbar(toolbarRoot, {
     onFiltersChanged: (nextState) => {
       filterState = nextState;
+      captureEnabled = nextState.captureEnabled;
       render();
     },
     onClear: () => {
@@ -328,6 +337,9 @@ async function bootstrap(): Promise<void> {
     },
     onCollapseAll: () => {
       setExpandAll(false);
+    },
+    onCaptureToggled: (enabled) => {
+      captureEnabled = enabled;
     }
   });
 

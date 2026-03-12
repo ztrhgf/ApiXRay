@@ -6,9 +6,11 @@ type ToolbarEvents = {
   onExport: () => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
+  onCaptureToggled: (enabled: boolean) => void;
 };
 
 const METHOD_ORDER: MethodFilter[] = ["ALL", "GET", "POST", "PUT", "PATCH", "DELETE", "OTHER"];
+const CAPTURE_ENABLED_KEY = "captureEnabled";
 
 async function getStoredIncludeInternal(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -22,6 +24,19 @@ function setStoredIncludeInternal(value: boolean): void {
   chrome.storage.local.set({ includeInternalEndpoints: value });
 }
 
+async function getStoredCaptureEnabled(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([CAPTURE_ENABLED_KEY], (items: Record<string, unknown>) => {
+      const value = items[CAPTURE_ENABLED_KEY];
+      resolve(typeof value === "boolean" ? value : true);
+    });
+  });
+}
+
+function setStoredCaptureEnabled(value: boolean): void {
+  chrome.storage.local.set({ [CAPTURE_ENABLED_KEY]: value });
+}
+
 export class Toolbar {
   private readonly root: HTMLElement;
   private readonly events: ToolbarEvents;
@@ -33,12 +48,14 @@ export class Toolbar {
     this.state = {
       selectedMethod: "ALL",
       searchText: "",
-      includeInternal: false
+      includeInternal: false,
+      captureEnabled: true
     };
   }
 
   async render(): Promise<void> {
     this.state.includeInternal = await getStoredIncludeInternal();
+    this.state.captureEnabled = await getStoredCaptureEnabled();
 
     const methodOptions = METHOD_ORDER.map(
       (method) => `<option value="${method}" ${this.state.selectedMethod === method ? "selected" : ""}>${method}</option>`
@@ -55,6 +72,15 @@ export class Toolbar {
           <input id="internal-toggle" type="checkbox" ${this.state.includeInternal ? "checked" : ""} />
           Show Internal Endpoints
         </label>
+        <div class="capture-switch-wrap">
+          <label class="switch" aria-label="Toggle Capture">
+            <input id="capture-toggle" type="checkbox" ${this.state.captureEnabled ? "checked" : ""} />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <span id="capture-state" class="capture-state ${this.state.captureEnabled ? "active" : "paused"}">
+          ${this.state.captureEnabled ? "Capturing" : "Paused"}
+        </span>
         <button id="expand-all-btn" class="action-btn">Expand All</button>
         <button id="collapse-all-btn" class="action-btn">Collapse All</button>
         <button id="clear-btn" class="action-btn">Clear</button>
@@ -98,14 +124,37 @@ export class Toolbar {
       this.events.onExport();
     });
 
+    this.root.querySelector<HTMLInputElement>("#capture-toggle")?.addEventListener("change", (event) => {
+      const target = event.target as HTMLInputElement;
+      this.state.captureEnabled = Boolean(target.checked);
+      setStoredCaptureEnabled(this.state.captureEnabled);
+      this.renderCaptureState();
+      this.events.onCaptureToggled(this.state.captureEnabled);
+    });
+
     this.events.onFiltersChanged(this.getState());
+    this.events.onCaptureToggled(this.state.captureEnabled);
+  }
+
+  private renderCaptureState(): void {
+    const stateBadge = this.root.querySelector<HTMLElement>("#capture-state");
+    const toggleSwitch = this.root.querySelector<HTMLInputElement>("#capture-toggle");
+    if (!stateBadge || !toggleSwitch) {
+      return;
+    }
+
+    stateBadge.textContent = this.state.captureEnabled ? "Capturing" : "Paused";
+    stateBadge.classList.toggle("active", this.state.captureEnabled);
+    stateBadge.classList.toggle("paused", !this.state.captureEnabled);
+    toggleSwitch.checked = this.state.captureEnabled;
   }
 
   getState(): FilterState {
     return {
       selectedMethod: this.state.selectedMethod,
       searchText: this.state.searchText,
-      includeInternal: this.state.includeInternal
+      includeInternal: this.state.includeInternal,
+      captureEnabled: this.state.captureEnabled
     };
   }
 }
