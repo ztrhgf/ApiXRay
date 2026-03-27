@@ -141,7 +141,6 @@ body {
 .slider,
 .slider::before,
 .icon-arrow,
-.copied-note,
 .details {
   transition: border-color 160ms ease, background-color 180ms ease, box-shadow 180ms ease, color 160ms ease, opacity 140ms ease, transform 140ms ease;
 }
@@ -353,6 +352,8 @@ input:checked + .slider::before {
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
+  position: relative;
+  z-index: 2;
 }
 
 .row-head-child {
@@ -457,34 +458,6 @@ input:checked + .slider::before {
   display: block;
 }
 
-.copied-note {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 4px);
-  transform: translateX(-50%) translateY(3px);
-  pointer-events: none;
-  z-index: 2;
-  font-size: 11px;
-  color: var(--ok);
-  opacity: 0;
-  transition: opacity 140ms ease, transform 140ms ease;
-  white-space: nowrap;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.copied-note.visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.copied-note.error {
-  color: var(--err);
-}
-
 .row-actions {
   display: inline-flex;
   align-items: center;
@@ -508,6 +481,18 @@ input:checked + .slider::before {
 
 .icon-btn:hover {
   border-color: color-mix(in srgb, var(--accent), var(--border) 32%);
+}
+
+.icon-btn.copy-feedback-success {
+  border-color: color-mix(in srgb, var(--ok), var(--border) 20%);
+  background: color-mix(in srgb, var(--ok), var(--surface) 84%);
+  color: color-mix(in srgb, var(--ok), black 12%);
+}
+
+.icon-btn.copy-feedback-error {
+  border-color: color-mix(in srgb, var(--err), var(--border) 20%);
+  background: color-mix(in srgb, var(--err), var(--surface) 84%);
+  color: color-mix(in srgb, var(--err), black 8%);
 }
 
 .icon-copy {
@@ -669,7 +654,6 @@ input:checked + .slider::before {
   .slider,
   .slider::before,
   .icon-arrow,
-  .copied-note,
   .details {
     transition: none !important;
   }

@@ -42,34 +42,25 @@ function getStatusClass(status: number): string {
   return "ok";
 }
 
-function revealCopiedNotification(
-  scope: ParentNode,
-  kind: string,
-  text: string,
-  variant: "success" | "error" = "success"
-): void {
-  const message = scope.querySelector<HTMLElement>(`[data-copied-for='${kind}']`);
-  if (!message) {
-    return;
-  }
+function flashCopyButton(button: HTMLButtonElement, variant: "success" | "error"): void {
+  const successClass = "copy-feedback-success";
+  const errorClass = "copy-feedback-error";
+  button.classList.remove(successClass, errorClass);
 
-  const pendingTimeoutId = Number(message.dataset.timeoutId ?? "0");
+  const pendingTimeoutId = Number(button.dataset.feedbackTimeoutId ?? "0");
   if (pendingTimeoutId) {
     window.clearTimeout(pendingTimeoutId);
   }
 
-  message.textContent = text;
-  message.classList.add("visible");
-  message.classList.toggle("error", variant === "error");
+  void button.offsetWidth;
+  button.classList.add(variant === "success" ? successClass : errorClass);
 
   const timeoutId = window.setTimeout(() => {
-    message.classList.remove("visible");
-    message.classList.remove("error");
-    message.textContent = "";
-    delete message.dataset.timeoutId;
-  }, 1400);
+    button.classList.remove(successClass, errorClass);
+    delete button.dataset.feedbackTimeoutId;
+  }, 900);
 
-  message.dataset.timeoutId = String(timeoutId);
+  button.dataset.feedbackTimeoutId = String(timeoutId);
 }
 
 export function createBatchGroup(
@@ -107,7 +98,6 @@ export function createBatchGroup(
       <button class="icon-btn" data-action="copy" title="Copy URL" aria-label="Copy URL">
         <span class="icon-copy" aria-hidden="true"></span>
       </button>
-      <span class="copied-note" data-copied-for="batch-parent-url" role="status" aria-live="polite"></span>
     </span>
   `;
 
@@ -158,7 +148,6 @@ export function createBatchGroup(
           <button class="icon-btn" data-action="copy" title="Copy URL" aria-label="Copy URL">
             <span class="icon-copy" aria-hidden="true"></span>
           </button>
-          <span class="copied-note" data-copied-for="batch-child-url" role="status" aria-live="polite"></span>
         </span>
       </div>
     `;
@@ -172,15 +161,16 @@ export function createBatchGroup(
     });
     child.appendChild(details);
 
-    child.querySelector<HTMLButtonElement>("button[data-action='copy']")?.addEventListener("click", (event) => {
+    const childCopyButton = child.querySelector<HTMLButtonElement>("button[data-action='copy']");
+    childCopyButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       void navigator.clipboard
         .writeText(childRequest.url)
         .then(() => {
-          revealCopiedNotification(child, "batch-child-url", "Copied", "success");
+          flashCopyButton(childCopyButton, "success");
         })
         .catch(() => {
-          revealCopiedNotification(child, "batch-child-url", "Copy failed", "error");
+          flashCopyButton(childCopyButton, "error");
         });
     });
 
@@ -205,15 +195,16 @@ export function createBatchGroup(
     children.appendChild(child);
   }
 
-  head.querySelector<HTMLButtonElement>("button[data-action='copy']")?.addEventListener("click", (event) => {
+  const parentCopyButton = head.querySelector<HTMLButtonElement>("button[data-action='copy']");
+  parentCopyButton?.addEventListener("click", (event) => {
     event.stopPropagation();
     void navigator.clipboard
       .writeText(request.url)
       .then(() => {
-        revealCopiedNotification(head, "batch-parent-url", "Copied", "success");
+        flashCopyButton(parentCopyButton, "success");
       })
       .catch(() => {
-        revealCopiedNotification(head, "batch-parent-url", "Copy failed", "error");
+        flashCopyButton(parentCopyButton, "error");
       });
   });
 

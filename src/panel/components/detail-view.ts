@@ -7,6 +7,27 @@ type DetailViewOptions = {
   searchText?: string;
 };
 
+function flashCopyButton(button: HTMLButtonElement, variant: "success" | "error"): void {
+  const successClass = "copy-feedback-success";
+  const errorClass = "copy-feedback-error";
+  button.classList.remove(successClass, errorClass);
+
+  const pendingTimeoutId = Number(button.dataset.feedbackTimeoutId ?? "0");
+  if (pendingTimeoutId) {
+    window.clearTimeout(pendingTimeoutId);
+  }
+
+  void button.offsetWidth;
+  button.classList.add(variant === "success" ? successClass : errorClass);
+
+  const timeoutId = window.setTimeout(() => {
+    button.classList.remove(successClass, errorClass);
+    delete button.dataset.feedbackTimeoutId;
+  }, 900);
+
+  button.dataset.feedbackTimeoutId = String(timeoutId);
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -107,7 +128,6 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
             <button class="icon-btn" data-action="copy-section" data-copy-kind="request-headers" title="Copy Request Headers" aria-label="Copy Request Headers">
               <span class="icon-copy" aria-hidden="true"></span>
             </button>
-            <span class="copied-note" data-copied-for="request-headers" role="status" aria-live="polite"></span>
           </span>
         </div>
         <pre id="${requestHeadersContentId}" class="json-block section-content">${highlightText(requestHeadersText, searchText)}</pre>
@@ -120,6 +140,11 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
       <section class="detail-section" data-section="request-body">
         <div class="detail-section-head">
           <strong>Request Body</strong>
+          <span class="detail-section-actions">
+            <button class="icon-btn" data-action="copy-section" data-copy-kind="request-body" title="Copy Request Body" aria-label="Copy Request Body">
+              <span class="icon-copy" aria-hidden="true"></span>
+            </button>
+          </span>
         </div>
         <pre class="json-block section-content">${highlightText(requestBodyText, searchText)}</pre>
       </section>
@@ -135,7 +160,6 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
             <button class="icon-btn" data-action="copy-section" data-copy-kind="response-body" title="Copy Response Body" aria-label="Copy Response Body">
               <span class="icon-copy" aria-hidden="true"></span>
             </button>
-            <span class="copied-note" data-copied-for="response-body" role="status" aria-live="polite"></span>
           </span>
         </div>
         <pre class="json-block section-content">${highlightText(responseBodyText, searchText)}</pre>
@@ -145,6 +169,7 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
 
   const copyTextBySection: Record<string, string> = {
     "request-headers": requestHeadersText,
+    "request-body": requestBodyText,
     "response-body": responseBodyText
   };
 
@@ -197,31 +222,6 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
     );
   }
 
-  const revealCopiedNotification = (kind: string, text: string, variant: "success" | "error" = "success"): void => {
-    const message = container.querySelector<HTMLElement>(`[data-copied-for='${kind}']`);
-    if (!message) {
-      return;
-    }
-
-    const pendingTimeoutId = Number(message.dataset.timeoutId ?? "0");
-    if (pendingTimeoutId) {
-      window.clearTimeout(pendingTimeoutId);
-    }
-
-    message.textContent = text;
-    message.classList.add("visible");
-    message.classList.toggle("error", variant === "error");
-
-    const timeoutId = window.setTimeout(() => {
-      message.classList.remove("visible");
-      message.classList.remove("error");
-      message.textContent = "";
-      delete message.dataset.timeoutId;
-    }, 1400);
-
-    message.dataset.timeoutId = String(timeoutId);
-  };
-
   for (const button of copySectionButtons) {
     button.addEventListener("click", async (event) => {
       event.stopPropagation();
@@ -237,9 +237,9 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
         } else {
           await navigator.clipboard.writeText(text);
         }
-        revealCopiedNotification(kind, "Copied", "success");
+        flashCopyButton(button, "success");
       } catch {
-        revealCopiedNotification(kind, "Copy failed", "error");
+        flashCopyButton(button, "error");
       }
     });
   }

@@ -30,6 +30,27 @@ type RequestEntryOptions = {
   searchText?: string;
 };
 
+function flashCopyButton(button: HTMLButtonElement, variant: "success" | "error"): void {
+  const successClass = "copy-feedback-success";
+  const errorClass = "copy-feedback-error";
+  button.classList.remove(successClass, errorClass);
+
+  const pendingTimeoutId = Number(button.dataset.feedbackTimeoutId ?? "0");
+  if (pendingTimeoutId) {
+    window.clearTimeout(pendingTimeoutId);
+  }
+
+  void button.offsetWidth;
+  button.classList.add(variant === "success" ? successClass : errorClass);
+
+  const timeoutId = window.setTimeout(() => {
+    button.classList.remove(successClass, errorClass);
+    delete button.dataset.feedbackTimeoutId;
+  }, 900);
+
+  button.dataset.feedbackTimeoutId = String(timeoutId);
+}
+
 export function createRequestEntry(
   request: MonitoredRequest,
   handlers: RequestEntryHandlers,
@@ -57,7 +78,6 @@ export function createRequestEntry(
       <button class="icon-btn" data-action="copy" title="Copy URL" aria-label="Copy URL">
         <span class="icon-copy" aria-hidden="true"></span>
       </button>
-      <span class="copied-note" data-copied-for="row-url" role="status" aria-live="polite"></span>
     </span>
   `;
 
@@ -66,39 +86,15 @@ export function createRequestEntry(
     searchText: options.searchText
   });
 
-  const revealCopiedNotification = (text: string, variant: "success" | "error" = "success"): void => {
-    const message = row.querySelector<HTMLElement>("[data-copied-for='row-url']");
-    if (!message) {
-      return;
-    }
-
-    const pendingTimeoutId = Number(message.dataset.timeoutId ?? "0");
-    if (pendingTimeoutId) {
-      window.clearTimeout(pendingTimeoutId);
-    }
-
-    message.textContent = text;
-    message.classList.add("visible");
-    message.classList.toggle("error", variant === "error");
-
-    const timeoutId = window.setTimeout(() => {
-      message.classList.remove("visible");
-      message.classList.remove("error");
-      message.textContent = "";
-      delete message.dataset.timeoutId;
-    }, 1400);
-
-    message.dataset.timeoutId = String(timeoutId);
-  };
-
-  row.querySelector<HTMLButtonElement>("button[data-action='copy']")?.addEventListener("click", (event) => {
+  const copyButton = row.querySelector<HTMLButtonElement>("button[data-action='copy']");
+  copyButton?.addEventListener("click", (event) => {
     event.stopPropagation();
     void Promise.resolve(handlers.onCopyUrl(request.url))
       .then(() => {
-        revealCopiedNotification("Copied", "success");
+        flashCopyButton(copyButton, "success");
       })
       .catch(() => {
-        revealCopiedNotification("Copy failed", "error");
+        flashCopyButton(copyButton, "error");
       });
   });
 
