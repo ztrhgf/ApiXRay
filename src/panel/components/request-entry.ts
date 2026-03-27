@@ -22,8 +22,8 @@ function getStatusClass(status: number): string {
 }
 
 type RequestEntryHandlers = {
-  onCopyUrl: (url: string) => void;
-  onCopyOutput: (payload: string) => void;
+  onCopyUrl: (url: string) => void | Promise<void>;
+  onCopyOutput: (payload: string) => void | Promise<void>;
 };
 
 type RequestEntryOptions = {
@@ -57,6 +57,7 @@ export function createRequestEntry(
       <button class="icon-btn" data-action="copy" title="Copy URL" aria-label="Copy URL">
         <span class="icon-copy" aria-hidden="true"></span>
       </button>
+      <span class="copied-note" data-copied-for="row-url" role="status" aria-live="polite"></span>
     </span>
   `;
 
@@ -65,9 +66,40 @@ export function createRequestEntry(
     searchText: options.searchText
   });
 
+  const revealCopiedNotification = (text: string, variant: "success" | "error" = "success"): void => {
+    const message = row.querySelector<HTMLElement>("[data-copied-for='row-url']");
+    if (!message) {
+      return;
+    }
+
+    const pendingTimeoutId = Number(message.dataset.timeoutId ?? "0");
+    if (pendingTimeoutId) {
+      window.clearTimeout(pendingTimeoutId);
+    }
+
+    message.textContent = text;
+    message.classList.add("visible");
+    message.classList.toggle("error", variant === "error");
+
+    const timeoutId = window.setTimeout(() => {
+      message.classList.remove("visible");
+      message.classList.remove("error");
+      message.textContent = "";
+      delete message.dataset.timeoutId;
+    }, 1400);
+
+    message.dataset.timeoutId = String(timeoutId);
+  };
+
   row.querySelector<HTMLButtonElement>("button[data-action='copy']")?.addEventListener("click", (event) => {
     event.stopPropagation();
-    handlers.onCopyUrl(request.url);
+    void Promise.resolve(handlers.onCopyUrl(request.url))
+      .then(() => {
+        revealCopiedNotification("Copied", "success");
+      })
+      .catch(() => {
+        revealCopiedNotification("Copy failed", "error");
+      });
   });
 
   const expandButton = row.querySelector<HTMLButtonElement>("button[data-action='expand']");

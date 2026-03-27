@@ -210,17 +210,36 @@ function clickExpandButtons(selector: string, shouldOpen: boolean): void {
   }
 }
 
+function setRequestHeadersExpanded(shouldOpen: boolean): void {
+  for (const section of Array.from(
+    requestList.querySelectorAll<HTMLElement>(".detail-section[data-section='request-headers']")
+  )) {
+    const isOpen = section.classList.contains("open");
+    if (isOpen === shouldOpen) {
+      continue;
+    }
+
+    section.classList.toggle("open", shouldOpen);
+
+    const toggle = section.querySelector<HTMLButtonElement>("button[data-action='toggle-request-headers']");
+    toggle?.classList.toggle("open", shouldOpen);
+    toggle?.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  }
+}
+
 function setExpandAll(shouldOpen: boolean): void {
   if (shouldOpen) {
-    clickExpandButtons(".request-entry > .row-head .expand-btn", true);
-    clickExpandButtons(".batch-group > .row-head .expand-btn", true);
-    clickExpandButtons(".batch-child .expand-btn", true);
+    clickExpandButtons(".request-entry > .row-head > button.expand-btn[data-action='expand']", true);
+    clickExpandButtons(".batch-group > .row-head > button.expand-btn[data-action='expand']", true);
+    clickExpandButtons(".batch-group > .batch-children > .batch-child > .row-head > button.expand-btn[data-action='expand']", true);
+    setRequestHeadersExpanded(false);
     return;
   }
 
-  clickExpandButtons(".batch-child .expand-btn", false);
-  clickExpandButtons(".batch-group > .row-head .expand-btn", false);
-  clickExpandButtons(".request-entry > .row-head .expand-btn", false);
+  clickExpandButtons(".batch-group > .batch-children > .batch-child > .row-head > button.expand-btn[data-action='expand']", false);
+  clickExpandButtons(".batch-group > .row-head > button.expand-btn[data-action='expand']", false);
+  clickExpandButtons(".request-entry > .row-head > button.expand-btn[data-action='expand']", false);
+  setRequestHeadersExpanded(false);
 }
 
 function render(): void {

@@ -165,6 +165,38 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
     container.querySelectorAll<HTMLButtonElement>("button[data-action='copy-section']")
   );
 
+  const jsonBlocks = Array.from(container.querySelectorAll<HTMLElement>(".json-block"));
+  for (const block of jsonBlocks) {
+    block.addEventListener(
+      "wheel",
+      (event) => {
+        if (event.deltaY === 0 || event.ctrlKey) {
+          return;
+        }
+
+        const pageScroller = document.scrollingElement;
+        if (!pageScroller) {
+          return;
+        }
+
+        const hasVerticalOverflow = block.scrollHeight > block.clientHeight + 1;
+        if (!hasVerticalOverflow) {
+          pageScroller.scrollTop += event.deltaY;
+          event.preventDefault();
+          return;
+        }
+
+        const isAtTop = block.scrollTop <= 0;
+        const isAtBottom = block.scrollTop + block.clientHeight >= block.scrollHeight - 1;
+        if ((event.deltaY < 0 && isAtTop) || (event.deltaY > 0 && isAtBottom)) {
+          pageScroller.scrollTop += event.deltaY;
+          event.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+  }
+
   const revealCopiedNotification = (kind: string, text: string, variant: "success" | "error" = "success"): void => {
     const message = container.querySelector<HTMLElement>(`[data-copied-for='${kind}']`);
     if (!message) {

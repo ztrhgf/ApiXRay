@@ -68,19 +68,14 @@ export class Toolbar {
         <input class="text-input" id="search-input" type="text" placeholder="Filter by..." />
       </div>
       <div class="toolbar-row">
-        <label>
-          <input id="internal-toggle" type="checkbox" ${this.state.includeInternal ? "checked" : ""} />
-          Show Internal Endpoints
+        <label id="capture-toggle-label" class="internal-state capture-state ${this.state.captureEnabled ? "active" : "paused"}">
+          <input id="capture-toggle" type="checkbox" ${this.state.captureEnabled ? "checked" : ""} />
+          <span id="capture-state-text">${this.state.captureEnabled ? "Capturing" : "Paused"}</span>
         </label>
-        <div class="capture-switch-wrap">
-          <label class="switch" aria-label="Toggle Capture">
-            <input id="capture-toggle" type="checkbox" ${this.state.captureEnabled ? "checked" : ""} />
-            <span class="slider round"></span>
-          </label>
-        </div>
-        <span id="capture-state" class="capture-state ${this.state.captureEnabled ? "active" : "paused"}">
-          ${this.state.captureEnabled ? "Capturing" : "Paused"}
-        </span>
+        <label id="internal-toggle-label" class="internal-state ${this.state.includeInternal ? "active" : "paused"}">
+          <input id="internal-toggle" type="checkbox" ${this.state.includeInternal ? "checked" : ""} />
+          <span>Show Internal Endpoints</span>
+        </label>
         <button id="clear-btn" class="action-btn action-btn-clear">Clear</button>
         <button id="expand-all-btn" class="action-btn">Expand All</button>
         <button id="collapse-all-btn" class="action-btn">Collapse All</button>
@@ -95,15 +90,36 @@ export class Toolbar {
     });
 
     const searchInput = this.root.querySelector<HTMLInputElement>("#search-input");
+    const renderSearchInputState = (): void => {
+      if (!searchInput) {
+        return;
+      }
+      searchInput.classList.toggle("active", Boolean(searchInput.value.trim()));
+    };
+
+    renderSearchInputState();
     searchInput?.addEventListener("input", () => {
       this.state.searchText = searchInput.value.trim().toLowerCase();
+      renderSearchInputState();
       this.events.onFiltersChanged(this.getState());
     });
 
     const internalToggle = this.root.querySelector<HTMLInputElement>("#internal-toggle");
+    const renderIncludeInternalState = (): void => {
+      const internalLabel = this.root.querySelector<HTMLElement>("#internal-toggle-label");
+      if (!internalLabel || !internalToggle) {
+        return;
+      }
+
+      internalLabel.classList.toggle("active", internalToggle.checked);
+      internalLabel.classList.toggle("paused", !internalToggle.checked);
+    };
+
+    renderIncludeInternalState();
     internalToggle?.addEventListener("change", () => {
       const checked = Boolean(internalToggle.checked);
       this.state.includeInternal = checked;
+      renderIncludeInternalState();
       setStoredIncludeInternal(checked);
       this.events.onFiltersChanged(this.getState());
     });
@@ -137,16 +153,17 @@ export class Toolbar {
   }
 
   private renderCaptureState(): void {
-    const stateBadge = this.root.querySelector<HTMLElement>("#capture-state");
-    const toggleSwitch = this.root.querySelector<HTMLInputElement>("#capture-toggle");
-    if (!stateBadge || !toggleSwitch) {
+    const stateLabel = this.root.querySelector<HTMLElement>("#capture-toggle-label");
+    const stateText = this.root.querySelector<HTMLElement>("#capture-state-text");
+    const captureToggle = this.root.querySelector<HTMLInputElement>("#capture-toggle");
+    if (!stateLabel || !stateText || !captureToggle) {
       return;
     }
 
-    stateBadge.textContent = this.state.captureEnabled ? "Capturing" : "Paused";
-    stateBadge.classList.toggle("active", this.state.captureEnabled);
-    stateBadge.classList.toggle("paused", !this.state.captureEnabled);
-    toggleSwitch.checked = this.state.captureEnabled;
+    stateText.textContent = this.state.captureEnabled ? "Capturing" : "Paused";
+    stateLabel.classList.toggle("active", this.state.captureEnabled);
+    stateLabel.classList.toggle("paused", !this.state.captureEnabled);
+    captureToggle.checked = this.state.captureEnabled;
   }
 
   getState(): FilterState {
