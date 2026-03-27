@@ -87,6 +87,44 @@ body {
   margin-top: 8px;
 }
 
+.search-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface), var(--bg) 20%);
+  opacity: 0.55;
+}
+
+.search-nav.active {
+  opacity: 1;
+}
+
+.search-match-count {
+  min-width: 56px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 2px;
+}
+
+.search-nav-btn {
+  width: 24px;
+  height: 24px;
+}
+
+.search-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.search-arrow {
+  font-size: 11px;
+  line-height: 1;
+}
+
 .toolbar,
 .toolbar-row > label,
 .select-input,
@@ -531,6 +569,12 @@ input:checked + .slider::before {
   color: #2f2000;
   border-radius: 2px;
   padding: 0 1px;
+}
+
+.match-hit.active-search-hit {
+  background: #ffb300;
+  color: #231500;
+  box-shadow: 0 0 0 1px rgba(255, 179, 0, 0.45);
 }
 
 .icon-arrow {

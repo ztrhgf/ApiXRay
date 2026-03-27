@@ -37,6 +37,9 @@ let filterState: FilterState = {
 };
 
 let captureEnabled = true;
+let toolbar: Toolbar | null = null;
+let searchMatches: HTMLElement[] = [];
+let activeSearchMatchIndex = -1;
 
 function requireElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -242,6 +245,63 @@ function setExpandAll(shouldOpen: boolean): void {
   setRequestHeadersExpanded(false);
 }
 
+function applyActiveSearchMatch(scrollIntoView: boolean): void {
+  for (const match of searchMatches) {
+    match.classList.remove("active-search-hit");
+  }
+
+  if (!toolbar) {
+    return;
+  }
+
+  if (!filterState.searchText || searchMatches.length === 0 || activeSearchMatchIndex < 0) {
+    toolbar.updateSearchMatches(0, searchMatches.length);
+    return;
+  }
+
+  const activeMatch = searchMatches[activeSearchMatchIndex];
+  activeMatch.classList.add("active-search-hit");
+  if (scrollIntoView) {
+    activeMatch.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+  }
+
+  toolbar.updateSearchMatches(activeSearchMatchIndex + 1, searchMatches.length);
+}
+
+function refreshSearchMatches(): void {
+  if (!filterState.searchText) {
+    searchMatches = [];
+    activeSearchMatchIndex = -1;
+    applyActiveSearchMatch(false);
+    return;
+  }
+
+  searchMatches = Array.from(requestList.querySelectorAll<HTMLElement>("mark.match-hit")).filter(
+    (match) => match.offsetParent !== null
+  );
+  if (searchMatches.length === 0) {
+    activeSearchMatchIndex = -1;
+    applyActiveSearchMatch(false);
+    return;
+  }
+
+  if (activeSearchMatchIndex < 0 || activeSearchMatchIndex >= searchMatches.length) {
+    activeSearchMatchIndex = 0;
+  }
+
+  applyActiveSearchMatch(false);
+}
+
+function navigateSearchMatches(direction: "prev" | "next"): void {
+  if (searchMatches.length === 0) {
+    return;
+  }
+
+  const step = direction === "next" ? 1 : -1;
+  activeSearchMatchIndex = (activeSearchMatchIndex + step + searchMatches.length) % searchMatches.length;
+  applyActiveSearchMatch(true);
+}
+
 function render(): void {
   const visible = applyFilters(requests);
 
@@ -271,6 +331,7 @@ function render(): void {
   }
 
   emptyState.style.display = visible.length ? "none" : "block";
+  refreshSearchMatches();
 }
 
 async function processEntry(entry: HarEntry, options?: { respectCaptureState?: boolean }): Promise<void> {
@@ -358,10 +419,14 @@ function listenForNewRequests(): void {
 }
 
 async function bootstrap(): Promise<void> {
-  const toolbar = new Toolbar(toolbarRoot, {
+  toolbar = new Toolbar(toolbarRoot, {
     onFiltersChanged: (nextState) => {
+      const searchChanged = nextState.searchText !== filterState.searchText;
       filterState = nextState;
       captureEnabled = nextState.captureEnabled;
+      if (searchChanged) {
+        activeSearchMatchIndex = -1;
+      }
       render();
     },
     onClear: () => {
@@ -379,6 +444,9 @@ async function bootstrap(): Promise<void> {
     },
     onCaptureToggled: (enabled) => {
       captureEnabled = enabled;
+    },
+    onSearchNavigate: (direction) => {
+      navigateSearchMatches(direction);
     }
   });
 
