@@ -42,12 +42,14 @@ body {
   color: var(--text);
   font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", sans-serif;
   font-size: 13px;
+  overflow-x: hidden;
 }
 
 .app-shell {
   display: grid;
   grid-template-rows: auto auto 1fr;
   min-height: 100vh;
+  min-width: 0;
 }
 
 .toolbar {
@@ -196,6 +198,12 @@ input:checked + .slider::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+
+.request-list > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .capture-separator {
@@ -233,6 +241,8 @@ input:checked + .slider::before {
   background: var(--surface);
   overflow: hidden;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .row-head {
@@ -288,6 +298,7 @@ input:checked + .slider::before {
   display: none;
   background: color-mix(in srgb, var(--surface), black 8%);
   transition: background-color 250ms ease;
+  min-width: 0;
 }
 
 .details.open {
@@ -301,6 +312,10 @@ input:checked + .slider::before {
 
 .detail-section + .detail-section {
   margin-top: 6px;
+}
+
+.detail-section {
+  min-width: 0;
 }
 
 .detail-section-head {
@@ -470,11 +485,13 @@ input:checked + .slider::before {
   display: flex;
   flex-direction: column;
   background: color-mix(in srgb, var(--surface), black 6%);
+  min-width: 0;
 }
 
 .batch-child {
   padding: 0;
   border-bottom: 1px dashed var(--border);
+  min-width: 0;
 }
 
 .batch-child:last-child {
