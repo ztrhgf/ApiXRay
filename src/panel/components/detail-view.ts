@@ -115,6 +115,8 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
   const lowerSearchText = searchText.toLowerCase();
   const requestHeadersMatch = Boolean(lowerSearchText) && requestHeadersText.toLowerCase().includes(lowerSearchText);
   const requestHeadersContentId = `request-headers-content-${request.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const requestBodyContentId = `request-body-content-${request.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const responseBodyContentId = `response-body-content-${request.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
   if (showRequestHeaders) {
     sections.push(`
@@ -137,32 +139,38 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
 
   if (showRequestBody) {
     sections.push(`
-      <section class="detail-section" data-section="request-body">
+      <section class="detail-section detail-section-collapsible open" data-section="request-body">
         <div class="detail-section-head">
-          <strong>Request Body</strong>
+          <button class="section-toggle-btn open" data-action="toggle-section" title="Toggle Request Body" aria-label="Toggle Request Body" aria-expanded="true" aria-controls="${requestBodyContentId}">
+            <span class="icon-arrow" aria-hidden="true"></span>
+            <strong>Request Body</strong>
+          </button>
           <span class="detail-section-actions">
             <button class="icon-btn" data-action="copy-section" data-copy-kind="request-body" title="Copy Request Body" aria-label="Copy Request Body">
               <span class="icon-copy" aria-hidden="true"></span>
             </button>
           </span>
         </div>
-        <pre class="json-block section-content">${highlightText(requestBodyText, searchText)}</pre>
+        <pre id="${requestBodyContentId}" class="json-block section-content">${highlightText(requestBodyText, searchText)}</pre>
       </section>
     `);
   }
 
   if (showResponseBody) {
     sections.push(`
-      <section class="detail-section" data-section="response-body">
+      <section class="detail-section detail-section-collapsible open" data-section="response-body">
         <div class="detail-section-head">
-          <strong>Response Body</strong>
+          <button class="section-toggle-btn open" data-action="toggle-section" title="Toggle Response Body" aria-label="Toggle Response Body" aria-expanded="true" aria-controls="${responseBodyContentId}">
+            <span class="icon-arrow" aria-hidden="true"></span>
+            <strong>Response Body</strong>
+          </button>
           <span class="detail-section-actions">
             <button class="icon-btn" data-action="copy-section" data-copy-kind="response-body" title="Copy Response Body" aria-label="Copy Response Body">
               <span class="icon-copy" aria-hidden="true"></span>
             </button>
           </span>
         </div>
-        <pre class="json-block section-content">${highlightText(responseBodyText, searchText)}</pre>
+        <pre id="${responseBodyContentId}" class="json-block section-content">${highlightText(responseBodyText, searchText)}</pre>
       </section>
     `);
   }
@@ -185,6 +193,20 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
     requestHeadersToggle.classList.toggle("open", isOpen);
     requestHeadersToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
+
+  const genericSectionToggles = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("button[data-action='toggle-section']")
+  );
+
+  for (const toggle of genericSectionToggles) {
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const section = toggle.closest<HTMLElement>(".detail-section");
+      const isOpen = section?.classList.toggle("open") ?? false;
+      toggle.classList.toggle("open", isOpen);
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+  }
 
   const copySectionButtons = Array.from(
     container.querySelectorAll<HTMLButtonElement>("button[data-action='copy-section']")

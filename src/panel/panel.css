@@ -57,7 +57,7 @@ body {
 .toolbar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 20;
   padding: 10px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface), transparent 4%);
@@ -353,7 +353,7 @@ input:checked + .slider::before {
   align-items: center;
   padding: 10px 12px;
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 .row-head-child {
