@@ -87,55 +87,133 @@ export function createDetailView(request: MonitoredRequest, options: DetailViewO
   const showRequestBody = !isEmptyBodyText(requestBodyText);
   const responseBodyText = prettyJson(request.responseBody);
   const showResponseBody = !isEmptyBodyText(responseBodyText);
+  const requestHeadersText = showRequestHeaders ? prettyJson(sanitizedRequestHeaders) : "";
 
   const sections: string[] = [];
   const searchText = options.searchText ?? "";
+  const lowerSearchText = searchText.toLowerCase();
+  const requestHeadersMatch = Boolean(lowerSearchText) && requestHeadersText.toLowerCase().includes(lowerSearchText);
+  const requestHeadersContentId = `request-headers-content-${request.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
   if (showRequestHeaders) {
-    const headersText = prettyJson(sanitizedRequestHeaders);
     sections.push(`
-      <strong>Request Headers</strong>
-      <pre class="json-block">${highlightText(headersText, searchText)}</pre>
+      <section class="detail-section detail-section-collapsible ${requestHeadersMatch ? "open" : ""}" data-section="request-headers">
+        <div class="detail-section-head">
+          <button class="section-toggle-btn ${requestHeadersMatch ? "open" : ""}" data-action="toggle-request-headers" title="Toggle Request Headers" aria-label="Toggle Request Headers" aria-expanded="${requestHeadersMatch ? "true" : "false"}" aria-controls="${requestHeadersContentId}">
+            <span class="icon-arrow" aria-hidden="true"></span>
+            <strong>Request Headers</strong>
+          </button>
+          <span class="detail-section-actions">
+            <button class="icon-btn" data-action="copy-section" data-copy-kind="request-headers" title="Copy Request Headers" aria-label="Copy Request Headers">
+              <span class="icon-copy" aria-hidden="true"></span>
+            </button>
+            <span class="copied-note" data-copied-for="request-headers" role="status" aria-live="polite"></span>
+          </span>
+        </div>
+        <pre id="${requestHeadersContentId}" class="json-block section-content">${highlightText(requestHeadersText, searchText)}</pre>
+      </section>
     `);
   }
 
   if (showRequestBody) {
     sections.push(`
-      <strong>Request Body</strong>
-      <pre class="json-block">${highlightText(requestBodyText, searchText)}</pre>
+      <section class="detail-section" data-section="request-body">
+        <div class="detail-section-head">
+          <strong>Request Body</strong>
+        </div>
+        <pre class="json-block section-content">${highlightText(requestBodyText, searchText)}</pre>
+      </section>
     `);
   }
 
   if (showResponseBody) {
     sections.push(`
-      <strong>Response Body</strong>
-      <pre class="json-block">${highlightText(responseBodyText, searchText)}</pre>
+      <section class="detail-section" data-section="response-body">
+        <div class="detail-section-head">
+          <strong>Response Body</strong>
+          <span class="detail-section-actions">
+            <button class="icon-btn" data-action="copy-section" data-copy-kind="response-body" title="Copy Response Body" aria-label="Copy Response Body">
+              <span class="icon-copy" aria-hidden="true"></span>
+            </button>
+            <span class="copied-note" data-copied-for="response-body" role="status" aria-live="polite"></span>
+          </span>
+        </div>
+        <pre class="json-block section-content">${highlightText(responseBodyText, searchText)}</pre>
+      </section>
     `);
   }
 
-  const copyPayload = {
-    ...(showRequestHeaders ? { requestHeaders: sanitizedRequestHeaders } : {}),
-    ...(showRequestBody ? { requestBody: sanitizeBody(request.requestBody) } : {}),
-    ...(showResponseBody ? { responseBody: sanitizeBody(request.responseBody) } : {})
+  const copyTextBySection: Record<string, string> = {
+    "request-headers": requestHeadersText,
+    "response-body": responseBodyText
   };
 
   container.innerHTML = `
-    <div class="details-actions">
-      <button class="icon-btn" data-action="copy-output" title="Copy output" aria-label="Copy output">
-        <span class="icon-copy" aria-hidden="true"></span>
-      </button>
-    </div>
     ${sections.join("\n")}
   `;
 
-  const copyOutputButton = container.querySelector<HTMLButtonElement>("button[data-action='copy-output']");
-  copyOutputButton?.addEventListener("click", (event) => {
+  const requestHeadersSection = container.querySelector<HTMLElement>("[data-section='request-headers']");
+  const requestHeadersToggle = container.querySelector<HTMLButtonElement>("button[data-action='toggle-request-headers']");
+  requestHeadersToggle?.addEventListener("click", (event) => {
     event.stopPropagation();
-    options.onCopyOutput?.(JSON.stringify(copyPayload, null, 2));
+    const isOpen = requestHeadersSection?.classList.toggle("open") ?? false;
+    requestHeadersToggle.classList.toggle("open", isOpen);
+    requestHeadersToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
 
+  const copySectionButtons = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("button[data-action='copy-section']")
+  );
+
+  const revealCopiedNotification = (kind: string, text: string, variant: "success" | "error" = "success"): void => {
+    const message = container.querySelector<HTMLElement>(`[data-copied-for='${kind}']`);
+    if (!message) {
+      return;
+    }
+
+    const pendingTimeoutId = Number(message.dataset.timeoutId ?? "0");
+    if (pendingTimeoutId) {
+      window.clearTimeout(pendingTimeoutId);
+    }
+
+    message.textContent = text;
+    message.classList.add("visible");
+    message.classList.toggle("error", variant === "error");
+
+    const timeoutId = window.setTimeout(() => {
+      message.classList.remove("visible");
+      message.classList.remove("error");
+      message.textContent = "";
+      delete message.dataset.timeoutId;
+    }, 1400);
+
+    message.dataset.timeoutId = String(timeoutId);
+  };
+
+  for (const button of copySectionButtons) {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const kind = button.dataset.copyKind ?? "";
+      const text = copyTextBySection[kind];
+      if (!text) {
+        return;
+      }
+
+      try {
+        if (options.onCopyOutput) {
+          await Promise.resolve(options.onCopyOutput(text));
+        } else {
+          await navigator.clipboard.writeText(text);
+        }
+        revealCopiedNotification(kind, "Copied", "success");
+      } catch {
+        revealCopiedNotification(kind, "Copy failed", "error");
+      }
+    });
+  }
+
   const searchableText = [
-    showRequestHeaders ? prettyJson(sanitizedRequestHeaders) : "",
+    showRequestHeaders ? requestHeadersText : "",
     showRequestBody ? requestBodyText : "",
     showResponseBody ? responseBodyText : ""
   ]

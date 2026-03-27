@@ -65,7 +65,7 @@ export class Toolbar {
       <div class="toolbar-row">
         <label for="method-filter">Method</label>
         <select class="select-input" id="method-filter">${methodOptions}</select>
-        <input class="text-input" id="search-input" type="text" placeholder="Filter by URL..." />
+        <input class="text-input" id="search-input" type="text" placeholder="Filter by..." />
       </div>
       <div class="toolbar-row">
         <label>
@@ -81,9 +81,9 @@ export class Toolbar {
         <span id="capture-state" class="capture-state ${this.state.captureEnabled ? "active" : "paused"}">
           ${this.state.captureEnabled ? "Capturing" : "Paused"}
         </span>
+        <button id="clear-btn" class="action-btn action-btn-clear">Clear</button>
         <button id="expand-all-btn" class="action-btn">Expand All</button>
         <button id="collapse-all-btn" class="action-btn">Collapse All</button>
-        <button id="clear-btn" class="action-btn">Clear</button>
         <button id="export-btn" class="action-btn">Export JSON</button>
       </div>
     `;

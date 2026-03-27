@@ -62,9 +62,10 @@ function escapeHtml(value: string): string {
 function createCaptureSeparator(pageUrl: string): HTMLElement {
   const separator = document.createElement("section");
   separator.className = "capture-separator";
+  const escapedPageUrl = escapeHtml(pageUrl);
   separator.innerHTML = `
     <div class="capture-separator-line"></div>
-    <div class="capture-separator-label">Captured on: ${escapeHtml(pageUrl)}</div>
+    <div class="capture-separator-label" title="Captured on: ${escapedPageUrl}">Captured on: ${escapedPageUrl}</div>
     <div class="capture-separator-line"></div>
   `;
   return separator;
@@ -134,6 +135,22 @@ function getResponseBody(entry: HarEntry): Promise<string> {
   });
 }
 
+function toSearchText(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 function applyFilters(all: MonitoredRequest[]): MonitoredRequest[] {
   return all.filter((request) => {
     if (filterState.selectedMethod !== "ALL") {
@@ -158,8 +175,11 @@ function applyFilters(all: MonitoredRequest[]): MonitoredRequest[] {
     const haystack = [
       formatUrl(request.endpointBase, request.endpointPath),
       request.url,
-      typeof request.responseBody === "string" ? request.responseBody : JSON.stringify(request.responseBody),
-      request.isBatch ? JSON.stringify(request.batchPairs) : ""
+      toSearchText(request.requestHeaders),
+      toSearchText(request.requestBody),
+      toSearchText(request.responseHeaders),
+      toSearchText(request.responseBody),
+      request.isBatch ? toSearchText(request.batchPairs) : ""
     ]
       .join("\n")
       .toLowerCase();
