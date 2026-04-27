@@ -12,6 +12,7 @@ const INTERNAL_ENDPOINTS = [
     "https://pds.iga.azure.com",
     "https://api.accessreviews.identitygovernance.azure.com",
     "https://admin.microsoft.com",
+    "https://admin.cloud.microsoft/fd/addins/api",
     "https://portal.office.com",
     "https://security.microsoft.com",
     "https://graph.windows.net",
