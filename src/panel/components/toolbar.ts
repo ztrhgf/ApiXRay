@@ -1,4 +1,4 @@
-import type { FilterState, HttpMethod, MethodFilter } from "../../shared/types";
+import type { FilterState, MethodFilter } from "../../shared/types";
 
 type ToolbarEvents = {
   onFiltersChanged: (state: FilterState) => void;
