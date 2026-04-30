@@ -2,7 +2,7 @@ import { createBatchGroup } from "./components/batch-group";
 import { createRequestEntry } from "./components/request-entry";
 import { Toolbar } from "./components/toolbar";
 import { getActiveEndpoints } from "../shared/endpoints";
-import { formatUrl, isBatchUrl, matchEndpoint } from "../shared/url-utils";
+import { decodeUriIfEnabled, formatUrl, isBatchUrl, matchEndpoint } from "../shared/url-utils";
 import { matchBatchPairs, parseBatchRequest, parseBatchResponse } from "../shared/batch-parser";
 import { sanitizeBody, sanitizeHeaders, sanitizeUrl } from "../shared/sanitizer";
 import type { FilterState, HttpMethod, MethodFilter, MonitoredRequest } from "../shared/types";
@@ -33,7 +33,8 @@ let filterState: FilterState = {
   selectedMethod: "ALL",
   searchText: "",
   includeInternal: false,
-  captureEnabled: true
+  captureEnabled: true,
+  decodeUri: true
 };
 
 let captureEnabled = true;
@@ -175,14 +176,17 @@ function applyFilters(all: MonitoredRequest[]): MonitoredRequest[] {
       return true;
     }
 
+    const endpointUrl = formatUrl(request.endpointBase, request.endpointPath);
+    const batchPairsText = request.isBatch ? toSearchText(request.batchPairs) : "";
+
     const haystack = [
-      formatUrl(request.endpointBase, request.endpointPath),
-      request.url,
+      decodeUriIfEnabled(endpointUrl, filterState.decodeUri),
+      decodeUriIfEnabled(request.url, filterState.decodeUri),
       toSearchText(request.requestHeaders),
       toSearchText(request.requestBody),
       toSearchText(request.responseHeaders),
       toSearchText(request.responseBody),
-      request.isBatch ? toSearchText(request.batchPairs) : ""
+      decodeUriIfEnabled(batchPairsText, filterState.decodeUri)
     ]
       .join("\n")
       .toLowerCase();
@@ -316,7 +320,10 @@ function render(): void {
     }
 
     const element = request.isBatch
-      ? createBatchGroup(request, filterState.selectedMethod, filterState.searchText)
+      ? createBatchGroup(request, filterState.selectedMethod, {
+          searchText: filterState.searchText,
+          decodeUri: filterState.decodeUri
+        })
       : createRequestEntry(request, {
           onCopyUrl: async (url) => {
             await navigator.clipboard.writeText(url);
@@ -325,7 +332,8 @@ function render(): void {
             await navigator.clipboard.writeText(payload);
           }
         }, {
-          searchText: filterState.searchText
+          searchText: filterState.searchText,
+          decodeUri: filterState.decodeUri
         });
     requestList.appendChild(element);
   }

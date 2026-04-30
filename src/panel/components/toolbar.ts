@@ -12,6 +12,7 @@ type ToolbarEvents = {
 
 const METHOD_ORDER: MethodFilter[] = ["ALL", "GET", "POST", "PUT", "PATCH", "DELETE", "OTHER"];
 const CAPTURE_ENABLED_KEY = "captureEnabled";
+const DECODE_URI_KEY = "decodeUri";
 
 async function getStoredIncludeInternal(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -38,6 +39,19 @@ function setStoredCaptureEnabled(value: boolean): void {
   chrome.storage.local.set({ [CAPTURE_ENABLED_KEY]: value });
 }
 
+async function getStoredDecodeUri(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([DECODE_URI_KEY], (items: Record<string, unknown>) => {
+      const value = items[DECODE_URI_KEY];
+      resolve(typeof value === "boolean" ? value : true);
+    });
+  });
+}
+
+function setStoredDecodeUri(value: boolean): void {
+  chrome.storage.local.set({ [DECODE_URI_KEY]: value });
+}
+
 export class Toolbar {
   private readonly root: HTMLElement;
   private readonly events: ToolbarEvents;
@@ -50,13 +64,15 @@ export class Toolbar {
       selectedMethod: "ALL",
       searchText: "",
       includeInternal: false,
-      captureEnabled: true
+      captureEnabled: true,
+      decodeUri: true
     };
   }
 
   async render(): Promise<void> {
     this.state.includeInternal = await getStoredIncludeInternal();
     this.state.captureEnabled = await getStoredCaptureEnabled();
+    this.state.decodeUri = await getStoredDecodeUri();
 
     const methodOptions = METHOD_ORDER.map(
       (method) => `<option value="${method}" ${this.state.selectedMethod === method ? "selected" : ""}>${method}</option>`
@@ -85,6 +101,10 @@ export class Toolbar {
         <label id="internal-toggle-label" class="internal-state ${this.state.includeInternal ? "active" : "paused"}">
           <input id="internal-toggle" type="checkbox" ${this.state.includeInternal ? "checked" : ""} />
           <span>Show Internal Endpoints</span>
+        </label>
+        <label id="decode-uri-toggle-label" class="internal-state ${this.state.decodeUri ? "active" : "paused"}">
+          <input id="decode-uri-toggle" type="checkbox" ${this.state.decodeUri ? "checked" : ""} />
+          <span>Decode Request URIs</span>
         </label>
         <button id="clear-btn" class="action-btn action-btn-clear">Clear</button>
         <button id="expand-all-btn" class="action-btn">Expand All</button>
@@ -141,6 +161,26 @@ export class Toolbar {
       this.state.includeInternal = checked;
       renderIncludeInternalState();
       setStoredIncludeInternal(checked);
+      this.events.onFiltersChanged(this.getState());
+    });
+
+    const decodeUriToggle = this.root.querySelector<HTMLInputElement>("#decode-uri-toggle");
+    const renderDecodeUriState = (): void => {
+      const decodeUriLabel = this.root.querySelector<HTMLElement>("#decode-uri-toggle-label");
+      if (!decodeUriLabel || !decodeUriToggle) {
+        return;
+      }
+
+      decodeUriLabel.classList.toggle("active", decodeUriToggle.checked);
+      decodeUriLabel.classList.toggle("paused", !decodeUriToggle.checked);
+    };
+
+    renderDecodeUriState();
+    decodeUriToggle?.addEventListener("change", () => {
+      const checked = Boolean(decodeUriToggle.checked);
+      this.state.decodeUri = checked;
+      renderDecodeUriState();
+      setStoredDecodeUri(checked);
       this.events.onFiltersChanged(this.getState());
     });
 
@@ -223,7 +263,8 @@ export class Toolbar {
       selectedMethod: this.state.selectedMethod,
       searchText: this.state.searchText,
       includeInternal: this.state.includeInternal,
-      captureEnabled: this.state.captureEnabled
+      captureEnabled: this.state.captureEnabled,
+      decodeUri: this.state.decodeUri
     };
   }
 }

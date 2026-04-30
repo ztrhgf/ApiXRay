@@ -45,3 +45,15 @@ export function splitPathAndQuery(path: string): { mainPath: string; query: stri
     query: path.slice(queryIndex)
   };
 }
+
+export function decodeUriText(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export function decodeUriIfEnabled(value: string, enabled: boolean): string {
+  return enabled ? decodeUriText(value) : value;
+}

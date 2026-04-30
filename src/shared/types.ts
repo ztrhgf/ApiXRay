@@ -51,4 +51,5 @@ export interface FilterState {
   searchText: string;
   includeInternal: boolean;
   captureEnabled: boolean;
+  decodeUri: boolean;
 }

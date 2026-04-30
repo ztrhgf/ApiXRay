@@ -1,6 +1,6 @@
 import { createDetailView } from "./detail-view";
 import type { MonitoredRequest } from "../../shared/types";
-import { splitPathAndQuery } from "../../shared/url-utils";
+import { decodeUriIfEnabled, splitPathAndQuery } from "../../shared/url-utils";
 
 function escapeHtml(value: string): string {
   return value
@@ -28,6 +28,7 @@ type RequestEntryHandlers = {
 
 type RequestEntryOptions = {
   searchText?: string;
+  decodeUri?: boolean;
 };
 
 function flashCopyButton(button: HTMLButtonElement, variant: "success" | "error"): void {
@@ -63,8 +64,9 @@ export function createRequestEntry(
   row.className = "row-head";
 
   const { mainPath, query } = splitPathAndQuery(request.endpointPath);
-  const escapedMain = escapeHtml(`${request.endpointBase}${mainPath}`);
-  const escapedQuery = escapeHtml(query);
+  const shouldDecodeUri = Boolean(options.decodeUri);
+  const escapedMain = escapeHtml(decodeUriIfEnabled(`${request.endpointBase}${mainPath}`, shouldDecodeUri));
+  const escapedQuery = escapeHtml(decodeUriIfEnabled(query, shouldDecodeUri));
   const escapedMethod = escapeHtml(request.method);
   row.innerHTML = `
     <button class="icon-btn expand-btn" data-action="expand" title="Toggle details" aria-label="Toggle details">
@@ -89,7 +91,8 @@ export function createRequestEntry(
   const copyButton = row.querySelector<HTMLButtonElement>("button[data-action='copy']");
   copyButton?.addEventListener("click", (event) => {
     event.stopPropagation();
-    void Promise.resolve(handlers.onCopyUrl(request.url))
+    const copyUrl = decodeUriIfEnabled(request.url, shouldDecodeUri);
+    void Promise.resolve(handlers.onCopyUrl(copyUrl))
       .then(() => {
         flashCopyButton(copyButton, "success");
       })

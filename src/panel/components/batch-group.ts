@@ -1,7 +1,12 @@
 import { createDetailView } from "./detail-view";
 import type { MethodFilter, MonitoredRequest } from "../../shared/types";
-import { splitPathAndQuery } from "../../shared/url-utils";
+import { decodeUriIfEnabled, splitPathAndQuery } from "../../shared/url-utils";
 import { sanitizeUrl } from "../../shared/sanitizer";
+
+type BatchGroupOptions = {
+  searchText?: string;
+  decodeUri?: boolean;
+};
 
 function escapeHtml(value: string): string {
   return value
@@ -66,8 +71,11 @@ function flashCopyButton(button: HTMLButtonElement, variant: "success" | "error"
 export function createBatchGroup(
   request: MonitoredRequest,
   selectedMethod: MethodFilter,
-  searchText = ""
+  options: BatchGroupOptions = {}
 ): HTMLElement {
+  const searchText = options.searchText ?? "";
+  const shouldDecodeUri = Boolean(options.decodeUri);
+
   const visiblePairs = request.batchPairs.filter((pair) => {
     const method = normalizeMethod(pair.request.method);
     if (method === "OTHER" && pair.request.method.toUpperCase() === "OPTIONS") {
@@ -83,8 +91,10 @@ export function createBatchGroup(
   const head = document.createElement("div");
   head.className = "row-head";
   const parentSegments = splitPathAndQuery(request.endpointPath);
-  const escapedParentMain = escapeHtml(`${request.endpointBase}${parentSegments.mainPath}`);
-  const escapedParentQuery = escapeHtml(parentSegments.query);
+  const escapedParentMain = escapeHtml(
+    decodeUriIfEnabled(`${request.endpointBase}${parentSegments.mainPath}`, shouldDecodeUri)
+  );
+  const escapedParentQuery = escapeHtml(decodeUriIfEnabled(parentSegments.query, shouldDecodeUri));
   head.innerHTML = `
     <button class="icon-btn expand-btn" data-action="expand" title="Toggle batch details" aria-label="Toggle batch details">
       <span class="icon-arrow" aria-hidden="true"></span>
@@ -133,8 +143,10 @@ export function createBatchGroup(
     const child = document.createElement("div");
     child.className = "batch-child";
     const childSegments = splitPathAndQuery(childRequest.endpointPath);
-    const escapedChildMain = escapeHtml(`${childRequest.endpointBase}${childSegments.mainPath}`);
-    const escapedChildQuery = escapeHtml(childSegments.query);
+    const escapedChildMain = escapeHtml(
+      decodeUriIfEnabled(`${childRequest.endpointBase}${childSegments.mainPath}`, shouldDecodeUri)
+    );
+    const escapedChildQuery = escapeHtml(decodeUriIfEnabled(childSegments.query, shouldDecodeUri));
     const escapedChildMethod = escapeHtml(pair.request.method.toUpperCase());
     child.innerHTML = `
       <div class="row-head row-head-child">
@@ -164,8 +176,9 @@ export function createBatchGroup(
     const childCopyButton = child.querySelector<HTMLButtonElement>("button[data-action='copy']");
     childCopyButton?.addEventListener("click", (event) => {
       event.stopPropagation();
+      const copyUrl = decodeUriIfEnabled(childRequest.url, shouldDecodeUri);
       void navigator.clipboard
-        .writeText(childRequest.url)
+        .writeText(copyUrl)
         .then(() => {
           flashCopyButton(childCopyButton, "success");
         })
@@ -198,8 +211,9 @@ export function createBatchGroup(
   const parentCopyButton = head.querySelector<HTMLButtonElement>("button[data-action='copy']");
   parentCopyButton?.addEventListener("click", (event) => {
     event.stopPropagation();
+    const copyUrl = decodeUriIfEnabled(request.url, shouldDecodeUri);
     void navigator.clipboard
-      .writeText(request.url)
+      .writeText(copyUrl)
       .then(() => {
         flashCopyButton(parentCopyButton, "success");
       })
