@@ -16,7 +16,9 @@ const INTERNAL_ENDPOINTS = [
     "https://portal.office.com",
     "https://security.microsoft.com",
     "https://graph.windows.net",
-    "https://api.azrbac.mspim.azure.com"
+    "https://api.azrbac.mspim.azure.com",
+    "https://purview.microsoft.com/api/log/Put",
+    "https://purview.microsoft.com/apiproxy"
 ] as const;
 
 export interface ScopedEndpoint {
