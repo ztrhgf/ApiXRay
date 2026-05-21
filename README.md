@@ -82,3 +82,8 @@ Edit endpoint arrays in `src/shared/endpoints.ts`.
 ## Dev Container
 
 The repository includes a dev container setup in `.devcontainer` with Node 20 and `web-ext` installed globally.
+This workspace is configured to use Podman for Dev Containers via `.vscode/settings.json`.
+The build file is `.devcontainer/Containerfile`.
+
+If VS Code prompts to install Docker in WSL, Podman is not currently available on the path used by Dev Containers.
+Install Podman on Windows and ensure `podman.exe` is available in `PATH`, then run `podman machine init` (first time only) and `podman machine start`.

@@ -1,12 +1,12 @@
 {
   "name": "ApiXRay Dev Container",
   "build": {
-    "dockerfile": "Dockerfile",
+    "dockerfile": "Containerfile",
     "context": "."
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "remoteUser": "node",
+  "remoteUser": "root",
   "customizations": {
     "vscode": {
       "extensions": [
