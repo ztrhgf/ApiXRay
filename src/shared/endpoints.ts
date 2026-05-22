@@ -6,19 +6,32 @@ const STANDARD_ENDPOINTS = [
     "https://management.azure.com"
 ] as const;
 
+// https://nodoc.nathanmcnulty.com/
 const INTERNAL_ENDPOINTS = [
     "https://main.iam.ad.ext.azure.com",
     "https://elm.iga.azure.com",
     "https://pds.iga.azure.com",
     "https://api.accessreviews.identitygovernance.azure.com",
     "https://admin.microsoft.com",
-    "https://admin.cloud.microsoft/fd/addins/api",
+    "https://admin.cloud.microsoft",
     "https://portal.office.com",
     "https://security.microsoft.com",
+    "https://api.securitycopilot.microsoft.com",
     "https://graph.windows.net",
     "https://api.azrbac.mspim.azure.com",
-    "https://purview.microsoft.com/api/log/Put",
-    "https://purview.microsoft.com/apiproxy"
+    "https://purview.microsoft.com/api",
+    "https://purview.microsoft.com/apiproxy",
+    "https://security.microsoft.com/apiproxy",
+    "https://admin.exchange.microsoft.com/beta",
+    "https://admin.teams.microsoft.com",
+    "https://engage.cloud.microsoft",
+    "https://config.office.com",
+    "https://clients.config.office.net",
+    "https://query.inventory.insights.office.net",
+    "https://services.autopatch.microsoft.com",
+    "https://intune.microsoft.com/api",
+    "https://api.bap.microsoft.com",
+    "https://main.b2cadmin.ext.azure.com"
 ] as const;
 
 export interface ScopedEndpoint {
